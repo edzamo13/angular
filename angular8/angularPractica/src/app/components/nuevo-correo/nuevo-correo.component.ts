@@ -1,6 +1,7 @@
 import { AvisosService } from './../../services/avisos.service';
 import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
 import { FormGroup, FormBuilder, Validators } from '@angular/forms';
+import { GmailService } from 'src/app/services/gmail.service';
 
 @Component({
   selector: 'app-nuevo-correo',
@@ -13,29 +14,24 @@ export class NuevoCorreoComponent implements OnInit {
   @Input() correo: any;
   @Output() accionRealizada: EventEmitter<any> = new EventEmitter();
 
-  constructor(
-    private formBuilder: FormBuilder,
-    private servicioAvisos: AvisosService
-    ) {}
+  constructor(private formBuilder: FormBuilder, private servicioAvisos: AvisosService, private gmail: GmailService) { }
 
   ngOnInit() {
     this.nuevoCorreo = this.formBuilder.group({
       titulo: ['', [Validators.required, Validators.minLength(3)]],
-      cuerpo: ['', [Validators.required, Validators.minLength(0)]],
-      destinatario: ['', [Validators.required, Validators.email]]
+      cuerpo: ['', [Validators.required, Validators.minLength(10)]],
+      destinatario: ['', [Validators.required, Validators.email]],
     });
-    if (this.correo != undefined) {
-      console.log('A', this.correo);
+    
+    if(this.correo != undefined){
       this.nuevoCorreo.patchValue({
-        titulo: 'Re: ' + this.correo.titulo,
+        titulo: 'Re: '+ this.correo.titulo, 
         destinatario: this.correo.emisor
       });
     }
   }
 
-  get formulario() {
-    return this.nuevoCorreo.controls;
-  }
+  get formulario() { return this.nuevoCorreo.controls; }
 
   onSubmit() {
     this.submitted = true;
@@ -45,11 +41,22 @@ export class NuevoCorreoComponent implements OnInit {
     }
 
     let correo = this.nuevoCorreo.value;
-    correo.leido = false;
-    correo.emisor = 'correoEmisor1@openWebinar.inv';
+
+    const texto = correo.cuerpo;
+    const destinatario = correo.destinatario;
+    const asunto = correo.titulo;
 
     this.onReset();
-    this.servicioAvisos.showMenssage(`Correo enviado a ${correo.emisor}`);
+    
+    this.gmail.sendMessage(texto, destinatario, asunto).subscribe(
+      (response) => {
+        console.log("respuesta envio", response);
+        this.servicioAvisos.showMenssage(`Correo enviado a ${correo.destinatario}`);
+      },
+      (error) => {
+        this.servicioAvisos.showMenssage(`Fallo en el envio`);
+      }
+    );
   }
 
   onReset() {
@@ -57,6 +64,7 @@ export class NuevoCorreoComponent implements OnInit {
     this.nuevoCorreo.reset();
     this.accionRealizada.emit();
   }
+
   cancel(){
     this.onReset();
     this.servicioAvisos.showMenssage("Envio Cancelado");
