@@ -4,9 +4,7 @@ import { Router } from '@angular/router';
 import { trigger, state, transition, style, animate } from '@angular/animations';
 import { MatTableDataSource } from '@angular/material/table';
 import { AvisosService } from 'src/app/services/avisos.service';
-
-
-
+import { Correo } from '../../views/intefaces/correo';
 
 
 @Component({
@@ -22,10 +20,10 @@ import { AvisosService } from 'src/app/services/avisos.service';
   ],
 })
 export class ListaCorreoGmailComponent implements OnInit {
-  correos: any[];
+  correos: Correo[];
   columnsToDisplay: string[] = ['Emisor', 'Asunto', 'Acciones'];
   displayedColumns: string[] = ['emisor', 'titulo', 'id'];
-  dataSource = new MatTableDataSource<any>();
+  dataSource = new MatTableDataSource<Correo>();
   expandedElement: any | null;
 
   constructor(private gmail: GmailService, private router: Router, private servicioAvisos: AvisosService) {
@@ -55,17 +53,9 @@ export class ListaCorreoGmailComponent implements OnInit {
 
   getMensaje(id: string){
     this.gmail.getMessage(id).subscribe(
-      (response) => {
-        const emisor = response.payload.headers.find(e => e.name === "From");
-        const subject = response.payload.headers.find(e => e.name === "Subject");
-
-        const mensage = {
-          id: response.id,
-          cuerpo: response.snippet,
-          emisor: emisor? emisor.value : undefined,
-          titulo: subject? subject.value : undefined,
-        };
-        this.dataSource.data.push(mensage);
+      (correo) => {
+        
+        this.dataSource.data.push(correo);
         this.dataSource._updateChangeSubscription();
       },
       (error) => this.error(error)
